@@ -190,16 +190,37 @@ def inference(model, test_df, img_size, normalization, dataset, method,face_marg
     ap = round(average_precision_score(labs, prds), 5)
     loss = round(running_loss / len(prds), 5)
     acc = round(running_corrects / len(prds), 5)
-
+    tn, fp, fn, tp = confusion_matrix(labs, np.round(prds)).ravel()
+    
+    res = {
+        'conf_matrix_video': confusion_matrix(np.round(prds), labs, labels=[1, 0]),
+        'loss': loss,
+        'acc': acc,
+        'auc': auc,
+        'ap': ap,
+        'conf_matrix_frame': confusion_matrix(np.round(frame_level_prds),
+                               frame_level_labs, labels=[1, 0]),
+        'auc_frame': frame_level_auc,
+        'acc_frame': frame_level_acc,
+        'cost_1': one_rec,
+        'cost_5':  five_rec,
+        'cost_9': nine_rec,
+        'duration_min': (time.time() - inference_time) // 60,
+        'duration_sec': (time.time() - inference_time) % 60,
+        'detected_fake': tp,
+        'detected_real': tn,
+        'mistook_fake': fp,
+        'mistook_real': fn
+    }
     print("Benchmark results:")
     print("Confusion matrix (video-level):")
     # get confusion matrix in correct order
     print(confusion_matrix(np.round(prds), labs, labels=[1, 0]))
-    tn, fp, fn, tp = confusion_matrix(labs, np.round(prds)).ravel()
+    
     print(f"Loss: {loss}")
     print(f"Acc: {acc}")
     print(f"AUC: {auc}")
-    print(f"AP: {auc}")
+    print(f"AP: {ap}")
     if not sequence_model:
         print("Confusion matrix (frame-level):")
         print(confusion_matrix(np.round(frame_level_prds),
@@ -220,4 +241,4 @@ def inference(model, test_df, img_size, normalization, dataset, method,face_marg
         f"Mistook \033[1m {fp}\033[0m real videos for deepfakes and \033[1m {fn}\033[0m deepfakes went by undetected by the method.")
     if fn == 0 and fp == 0:
         print("Wow! A perfect classifier!")
-    return auc, ap, loss, acc
+    return res

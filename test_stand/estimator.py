@@ -11,6 +11,48 @@ from tqdm import tqdm
 class Estimator():
     def __init__():
         pass
+    
+    @classmethod
+    def detect_single(cls, video_path=None, label=None, method="xception_uadfv"):
+        """Perform deepfake detection on a single video with a chosen method."""
+        # prepare the method of choice
+        sequence_model = False
+        if method == "xception_uadfv":
+            model, img_size, normalization = prepare_method(
+                method=method, dataset=None, mode='test')
+            used = "Xception_UADFV"
+        elif method == "xception_celebdf":
+            model, img_size, normalization = prepare_method(
+                method=method, dataset=None, mode='test')
+            used = "Xception_CELEB-DF"
+        elif method == "xception_dfdc":
+            model, img_size, normalization = prepare_method(
+                method=method, dataset=None, mode='test')
+            used = "Xception_DFDC"
+
+        if video_path:
+                
+            data = [[1, video_path]]
+            df = pd.DataFrame(data, columns=['label', 'video'])
+            loss = test.inference(
+                    model, df, img_size, normalization, dataset=None, method=method, face_margin=0.3, sequence_model=sequence_model, num_frames=20, single=True)
+            if round(loss) == 1:
+                # Deepfake
+                if label == 'is_fake':
+                    result = 'Это видео успешно определено как дипфейк'
+                else:
+                    result = 'Видео ошибочно определено как дипфейк'
+                print("Deepfake detected.")
+                return used, result
+            else:
+                # Real
+                if label == 'is_fake':
+                    result = 'Это видео ошибочно определено как оригинальное'
+                else:
+                    result = 'Видео успешно определено как оригинальное'
+                print("This is a real video.")
+                return used, result
+
 
     @classmethod
     def benchmark(self, dataset=None, method=None, data_path=None, seed=12):
@@ -31,9 +73,9 @@ class Estimator():
                             dataset=self.dataset, test_data=True)
 
             print(f"Detecting deepfakes with \033[1m{self.method}\033[0m ...")
-            auc, ap, loss, acc = test.inference(
+            res = test.inference(
                 model, df, img_size, normalization, dataset=self.dataset, method=self.method, face_margin=face_margin, num_frames=num_frames)
-            return [auc, ap, loss, acc]
+            return res
     
 def reproducibility_seed(seed):
     print(f"The random seed is set to {seed}.")
