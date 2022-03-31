@@ -179,15 +179,28 @@ def inference(model, test_df, img_size, normalization, dataset, method,face_marg
     if dataset is not None:
         df.to_csv(f'{method}_predictions_on_{dataset}.csv', index=False)
     # get metrics
-    one_rec, five_rec, nine_rec = metrics.prec_rec(
+    try:
+        one_rec, five_rec, nine_rec = metrics.prec_rec(
         labs, prds, method, alpha=100, plot=False)
-    auc = round(roc_auc_score(labs, prds), 5)
+    except:
+        one_rec, five_rec, nine_rec = 0,0,0
+    try:
+        auc = round(roc_auc_score(labs, prds), 5)
+    except:
+        auc = 0
     if not sequence_model:
-        frame_level_auc = round(roc_auc_score(
-            frame_level_labs, frame_level_prds), 5)
-        frame_level_acc = round(running_corrects_frame_level /
+        try:
+            frame_level_auc = round(roc_auc_score(
+                frame_level_labs, frame_level_prds), 5)
+            frame_level_acc = round(running_corrects_frame_level /
                                 (running_corrects_frame_level + running_false_frame_level), 5)
-    ap = round(average_precision_score(labs, prds), 5)
+        except:
+            frame_level_auc = 0
+            frame_level_acc = 0
+    try:
+        ap = round(average_precision_score(labs, prds), 5)
+    except:
+        ap = 0
     loss = round(running_loss / len(prds), 5)
     acc = round(running_corrects / len(prds), 5)
     tn, fp, fn, tp = confusion_matrix(labs, np.round(prds)).ravel()
