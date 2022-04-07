@@ -1,0 +1,8 @@
+test_stand/metadata/*
+test_stand/pretrained_mods/*
+*.avi
+*.jpg
+*.csv
+*.png
+*.pyc
+datasets/*
