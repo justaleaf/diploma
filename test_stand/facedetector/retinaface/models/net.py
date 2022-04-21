@@ -6,6 +6,8 @@ import torchvision.models as models
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+torch.backends.cudnn.benchmark = True
+
 def conv_bn(inp, oup, stride = 1, leaky = 0):
     return nn.Sequential(
         nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
