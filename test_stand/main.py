@@ -26,6 +26,8 @@ def estimate_df():
             data_path = '/home/woghan/projects/diploma/diploma/datasets/dfdcdataset'
         elif dataset == 'uadfv':
             data_path = '/home/woghan/projects/diploma/diploma/datasets/uadfv/fake_videos'
+        elif dataset == 'generateddf':
+            data_path = '/home/woghan/projects/diploma/diploma/datasets/generateddf'
             
         res = Estimator.benchmark(dataset, method, data_path)
         print(res)

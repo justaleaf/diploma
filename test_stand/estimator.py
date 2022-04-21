@@ -84,6 +84,8 @@ class Estimator():
         elif self.dataset == 'dftimit_lq':
             num_frames = 20
             setup_dftimit_lq_benchmark(self.data_path, self.method)
+        elif self.dataset == 'generateddf':
+            num_frames = 20
         elif self.dataset == 'dfdc':
             # benchmark on only 5 frames per video, because of dataset size
             num_frames = 5
@@ -671,6 +673,111 @@ def label_data(dataset_path=None, dataset='uadfv', method='xception', face_crops
                     if len(df) == 0:
                         raise ValueError(
                             "No faces available. Please set faces_available=False.")
+        elif dataset == 'generateddf':
+            # prepare training data
+            video_path_real = os.path.join(dataset_path + "/real/")
+            video_path_fake = os.path.join(dataset_path + "/fake/")
+            # if no face crops available yet, read csv for videos
+            if not face_crops:
+                # read csv for videos
+                test_dat = pd.read_csv(os.getcwd(
+                ) + "/uadfv_test.csv", names=['video'], header=None)
+                test_list = test_dat['video'].tolist()
+
+                full_list = []
+                for _, _, videos in os.walk(video_path_real):
+                    for video in videos:
+                        # label 0 for real video
+                        full_list.append(video)
+
+                for _, _, videos in os.walk(video_path_fake):
+                    for video in videos:
+                        # label 1 for deepfake video
+                        full_list.append(video)
+
+                # training data (not used for testing)
+                new_list = [
+                    entry for entry in full_list if entry not in test_list]
+
+                # add labels to videos
+                data_list = []
+                for _, _, videos in os.walk(video_path_real):
+                    for video in tqdm(videos):
+                        # append if video in training data
+                        if video in new_list:
+                            # label 0 for real video
+                            data_list.append(
+                                {'label': 0, 'video': video_path_real + video})
+
+                for _, _, videos in os.walk(video_path_fake):
+                    for video in tqdm(videos):
+                        # append if video in training data
+                        if video in new_list:
+                            # label 1 for deepfake video
+                            data_list.append(
+                                {'label': 1, 'video': video_path_fake + video})
+
+                # put data into dataframe
+                df = pd.DataFrame(data=data_list)
+
+            else:
+                # if sequence, prepare sequence dataframe
+                if method == 'resnet_lstm' or method == 'efficientnetb1_lstm':
+                    # prepare dataframe for sequence model
+                    video_path_real = os.path.join(
+                        dataset_path + "/train_imgs/real/")
+                    video_path_fake = os.path.join(
+                        dataset_path + "/train_imgs/fake/")
+
+                    data_list = []
+                    for _, _, videos in os.walk(video_path_real):
+                        for video in tqdm(videos):
+                            # label 0 for real video
+                            data_list.append(
+                                {'label': 0, 'video': video})
+
+                    for _, _, videos in os.walk(video_path_fake):
+                        for video in tqdm(videos):
+                            # label 1 for deepfake video
+                            data_list.append(
+                                {'label': 1, 'video': video})
+
+                    # put data into dataframe
+                    df = pd.DataFrame(data=data_list)
+                    df = prepare_sequence_data(dataset, df)
+                    # add path to data
+                    for idx, row in df.iterrows():
+                        if row['label'] == 0:
+                            df.loc[idx, 'original'] = str(
+                                video_path_real) + str(row['original'])
+                        elif row['label'] == 1:
+                            df.loc[idx, 'original'] = str(
+                                video_path_fake) + str(row['original'])
+
+                else:
+                    # if face crops available go to path with face crops
+                    # add labels to videos
+
+                    video_path_real = os.path.join(
+                        dataset_path + "/train_imgs/real/")
+                    video_path_fake = os.path.join(
+                        dataset_path + "/train_imgs/fake/")
+
+                    data_list = []
+                    for _, _, videos in os.walk(video_path_real):
+                        for video in tqdm(videos):
+                            # label 0 for real video
+                            data_list.append(
+                                {'label': 0, 'video': video_path_real + video})
+
+                    for _, _, videos in os.walk(video_path_fake):
+                        for video in tqdm(videos):
+                            # label 1 for deepfake video
+                            data_list.append(
+                                {'label': 1, 'video': video_path_fake + video})
+
+                    # put data into dataframe
+                    df = pd.DataFrame(data=data_list)
     else:
         # prepare test data
         if dataset == 'uadfv':
@@ -765,6 +872,22 @@ def label_data(dataset_path=None, dataset='uadfv', method='xception', face_crops
                 [df_test_reals, df_test_fakes], ignore_index=True)
             print(df_test)
             return df_test
+        elif dataset == 'generateddf':
+            video_path_test_real = os.path.join(dataset_path + "/real/")
+            video_path_test_fake = os.path.join(dataset_path + "/fake/")
+            data_list = []
+            for _, _, videos in os.walk(video_path_test_real):
+                for video in tqdm(videos):
+                    # append test video
+                    data_list.append(
+                        {'label': 0, 'video': video_path_test_real + video})
+            print(data_list)
+            for _, _, videos in os.walk(video_path_test_fake):
+                for video in tqdm(videos):
+                    # label 1 for deepfake image
+                    data_list.append(
+                        {'label': 1, 'video': video_path_test_fake + video})
+            return pd.DataFrame(data_list)
     # if test_data:
     #     print(f"{len(df)} test videos.")
     # else:
